@@ -1,0 +1,62 @@
+name:                xendit
+version:             0.1.0.0
+github:              "Xiswa/xendit"
+license:             BSD3
+author:              "PT Xiswa Adidaya Nusantara"
+maintainer:          "developer@xiswa.com"
+copyright:           "2023 PT Xiswa Adidaya Nusantara"
+
+extra-source-files:
+- README.md
+- CHANGELOG.md
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on GitHub at <https://github.com/Xiswa/xendit#readme>
+
+dependencies:
+- base >= 4.7 && < 5
+- mtl
+- aeson
+- http-client
+- http-client-tls
+- servant
+- servant-client
+- servant-client-core
+- text
+- time
+
+ghc-options:
+- -Wall
+- -Wcompat
+- -Widentities
+- -Wincomplete-record-updates
+- -Wincomplete-uni-patterns
+- -Wmissing-export-lists
+- -Wmissing-home-modules
+- -Wpartial-fields
+- -Wredundant-constraints
+
+library:
+  source-dirs: src
+
+tests:
+  xendit-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - base
+    - xendit
+    - hspec
+    - hspec-wai
+    - hspec-wai-json
+    - aeson
