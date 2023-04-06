@@ -58,6 +58,13 @@ spec conf = do
       invoiceResp1 <- runTest conf $ requestInvoice id invoiceRequest
       invoiceResp2 <- runTest conf $ getInvoice id (invoiceRespId invoiceResp1)
       invoiceResp2 `shouldBe` invoiceResp1
+
+  describe "getBalance" $ do
+    it "correctly gets current balance" $ do
+      -- Defaults to CASH
+      cashBalance <- runTest conf $ getBalance id Nothing
+      cashBalance' <- runTest conf $ getBalance id (Just CASH)
+      cashBalance `shouldBe` cashBalance'
       
 
 main :: IO ()

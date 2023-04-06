@@ -9,9 +9,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell   #-}
 module Xendit.Client (
+  -- Constraints
     HasXenditConfig(..)
   , XenditConfig(..)
   , WithXendit
+
+  -- Client functions
+  , getBalance
   , requestInvoice
   , getInvoice
   , getAllInvoices
@@ -59,19 +63,28 @@ type WithXendit env err m =
 -- https://api.xendit.co/v2/
 data Xendit route = Xendit
   { 
-    _requestInvoice :: route
-      :- "invoices"
+    _getBalance :: route
+      :- "balance"
+      :> BasicAuth "xendit" ()
+      :> QueryParam "account_type" AccountType
+      :> Get '[JSON] Balance
+
+  , _requestInvoice :: route
+      :- "v2" 
+      :> "invoices"
       :> BasicAuth "xendit" ()
       :> ReqBody '[JSON] InvoiceRequest 
       :> Post '[JSON] InvoiceResponse
 
   , _getAllInvoices :: route
-      :- "invoices"
+      :- "v2" 
+      :> "invoices"
       :> BasicAuth "xendit" ()
       :> Get '[JSON] [InvoiceResponse]
 
   , _getInvoice :: route
-      :- "invoices"
+      :- "v2" 
+      :> "invoices"
       :> BasicAuth "xendit" ()
       :> Capture "id" Text
       :> Get '[JSON] InvoiceResponse
@@ -96,6 +109,15 @@ getAuth
 getAuth = do
   XenditConfig{..} <- asks obtain
   return $ BasicAuthData (encodeUtf8 xenditApiKey) ""
+
+getBalance 
+  :: forall env err m. (WithXendit env err m)
+  => (ClientError -> err)
+  -> Maybe AccountType 
+  -> m Balance
+getBalance errorConv maybeAccountType = do
+  xenditAuth <- getAuth
+  _getBalance (xenditRoutes errorConv) xenditAuth maybeAccountType
   
 requestInvoice 
   :: forall env err m. (WithXendit env err m)

@@ -2,7 +2,9 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Xendit.Types (
   -- Xendit datatypes
-    Currency(..)
+    AccountType(..)
+  , Balance(..)
+   ,Currency(..)
   , Status(..)
   , BankCode(..)
   , Bank(..)
@@ -22,10 +24,26 @@ module Xendit.Types (
 
 import Data.Aeson
 import Data.Aeson.TH
-import Data.Text (Text)
+import Data.Text (Text, pack)
 import Data.Time (UTCTime)
 
 import Xendit.Internal.Utils
+import Servant.API (ToHttpApiData(..))
+
+data AccountType = CASH | HOLDING | TAX
+  deriving (Eq, Show)
+
+instance ToHttpApiData AccountType where
+  toQueryParam = pack . show
+
+$(deriveJSON xenditOptions ''AccountType)
+
+newtype Balance = Balance 
+  { balance :: Int 
+  }
+  deriving (Eq, Show)
+
+$(deriveJSON xenditOptions ''Balance)
 
 data Currency = IDR | PHP
   deriving (Eq, Show)
