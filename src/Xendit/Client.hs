@@ -1,16 +1,18 @@
-{-# LANGUAGE DataKinds         #-}
-{-# LANGUAGE TypeOperators     #-}
-{-# LANGUAGE DeriveGeneric     #-}
-{-# LANGUAGE KindSignatures    #-}
-{-# LANGUAGE RankNTypes        #-}
-{-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE RecordWildCards   #-}
-{-# LANGUAGE ConstraintKinds   #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell   #-}
+{-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE TypeOperators         #-}
+{-# LANGUAGE DeriveGeneric         #-}
+{-# LANGUAGE KindSignatures        #-}
+{-# LANGUAGE RankNTypes            #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE RecordWildCards       #-}
+{-# LANGUAGE ConstraintKinds       #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE TemplateHaskell       #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 module Xendit.Client (
   -- Constraints
     HasXenditConfig(..)
+  , HasErrorConv(..)
   , XenditConfig(..)
   , WithXendit
 
@@ -38,7 +40,10 @@ import Xendit.Types
 import Xendit.Internal.Utils
 
 class HasXenditConfig env where
-  obtain :: env -> XenditConfig
+  getConfig :: env -> XenditConfig
+
+class HasErrorConv err env where
+  getErrorConv :: env -> ClientError -> err
 
 data XenditConfig = XenditConfig
   { xenditApiKey        :: !Text
@@ -49,18 +54,15 @@ data XenditConfig = XenditConfig
 
 $(deriveJSON xenditOptions {fieldLabelModifier = camelWithPrefToSnake "xendit"} ''XenditConfig)
 
-instance HasXenditConfig XenditConfig where
-  obtain = id
-
 type WithXendit env err m = 
   ( MonadReader env m
   , HasXenditConfig env
+  , HasErrorConv err env
   , MonadIO m
   , MonadError err m
   )
 
 -- | Xendit API endpoints
--- https://api.xendit.co/v2/
 data Xendit route = Xendit
   { 
     _getBalance :: route
@@ -94,10 +96,10 @@ data Xendit route = Xendit
 {- | Automatically derive client functions -}
 xenditRoutes 
   :: forall env err m. (WithXendit env err m)
-  => (ClientError -> err)
-  -> Xendit (AsClientT m)
-xenditRoutes errorConv = genericClientHoist $ \c -> do
-  XenditConfig{..} <- asks obtain
+  => Xendit (AsClientT m)
+xenditRoutes = genericClientHoist $ \c -> do
+  XenditConfig{..} <- asks getConfig
+  errorConv <- asks getErrorConv
   manager <- liftIO $ newManager tlsManagerSettings
   let env = mkClientEnv manager xenditApiUrl
   resp <- liftIO (runClientM c env)
@@ -107,40 +109,36 @@ getAuth
   :: forall env err m. (WithXendit env err m)
   => m BasicAuthData  
 getAuth = do
-  XenditConfig{..} <- asks obtain
+  XenditConfig{..} <- asks getConfig
   return $ BasicAuthData (encodeUtf8 xenditApiKey) ""
 
 getBalance 
   :: forall env err m. (WithXendit env err m)
-  => (ClientError -> err)
-  -> Maybe AccountType 
+  => Maybe AccountType 
   -> m Balance
-getBalance errorConv maybeAccountType = do
+getBalance maybeAccountType = do
   xenditAuth <- getAuth
-  _getBalance (xenditRoutes errorConv) xenditAuth maybeAccountType
+  _getBalance xenditRoutes xenditAuth maybeAccountType
   
 requestInvoice 
   :: forall env err m. (WithXendit env err m)
-  => (ClientError -> err)
-  -> InvoiceRequest 
+  => InvoiceRequest 
   -> m InvoiceResponse
-requestInvoice errorConv invoiceRequest = do
+requestInvoice invoiceRequest = do
   xenditAuth <- getAuth
-  _requestInvoice (xenditRoutes errorConv) xenditAuth invoiceRequest
+  _requestInvoice xenditRoutes xenditAuth invoiceRequest
 
 getAllInvoices 
   :: forall env err m. (WithXendit env err m)
-  => (ClientError -> err)
-  -> m [InvoiceResponse]
-getAllInvoices errorConv = do
+  => m [InvoiceResponse]
+getAllInvoices = do
   xenditAuth <- getAuth
-  _getAllInvoices (xenditRoutes errorConv) xenditAuth
+  _getAllInvoices xenditRoutes xenditAuth
 
 getInvoice
   :: forall env err m. (WithXendit env err m)
-  => (ClientError -> err)
-  -> Text 
+  => Text 
   -> m InvoiceResponse
-getInvoice errorConv invoiceId = do 
+getInvoice invoiceId = do 
   xenditAuth <- getAuth
-  _getInvoice (xenditRoutes errorConv) xenditAuth invoiceId
+  _getInvoice xenditRoutes xenditAuth invoiceId

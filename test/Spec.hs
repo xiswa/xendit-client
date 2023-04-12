@@ -15,10 +15,20 @@ import Test.Hspec
 
 import Xendit
 
-newtype Test a = Test
-  { unTest :: ReaderT XenditConfig IO a
+newtype TestEnv = TestEnv
+  { unTestEnv :: (XenditConfig, ClientError -> ClientError)
   }
-  deriving newtype (Functor, Applicative, Monad, MonadIO, MonadReader XenditConfig)
+
+instance HasXenditConfig TestEnv where
+  getConfig = fst . unTestEnv
+
+instance HasErrorConv ClientError TestEnv where
+  getErrorConv = snd . unTestEnv
+
+newtype Test a = Test
+  { unTest :: ReaderT TestEnv IO a
+  }
+  deriving newtype (Functor, Applicative, Monad, MonadIO, MonadReader TestEnv)
 
 instance MonadError ClientError Test where
   throwError :: ClientError -> Test a
@@ -31,10 +41,10 @@ instance MonadError ClientError Test where
     ioAction `catch` \e -> runTest env $ handler e
   {-# INLINE catchError #-}
 
-runTest :: XenditConfig -> Test a -> IO a
+runTest :: TestEnv -> Test a -> IO a
 runTest env = flip runReaderT env . unTest
 
-spec :: XenditConfig -> Spec
+spec :: TestEnv -> Spec
 spec conf = do
   let invoiceRequest = InvoiceRequest
         { invoiceReqExternalId          = "some-external-id"
@@ -48,26 +58,26 @@ spec conf = do
 
   describe "requestInvoice" $ do
     it "responds with correct fields" $ do
-      invoiceResp <- runTest conf $ requestInvoice id invoiceRequest
+      invoiceResp <- runTest conf $ requestInvoice invoiceRequest
       invoiceRespExternalId invoiceResp `shouldBe` invoiceReqExternalId invoiceRequest
       invoiceRespDescription invoiceResp `shouldBe` invoiceReqDescription invoiceRequest
       invoiceRespAmount invoiceResp `shouldBe` invoiceReqAmount invoiceRequest
 
   describe "getInvoice" $ do
     it "correctly gets invoice by id" $ do
-      invoiceResp1 <- runTest conf $ requestInvoice id invoiceRequest
-      invoiceResp2 <- runTest conf $ getInvoice id (invoiceRespId invoiceResp1)
+      invoiceResp1 <- runTest conf $ requestInvoice invoiceRequest
+      invoiceResp2 <- runTest conf $ getInvoice (invoiceRespId invoiceResp1)
       invoiceResp2 `shouldBe` invoiceResp1
 
   describe "getBalance" $ do
     it "correctly gets current balance" $ do
       -- Defaults to CASH
-      cashBalance <- runTest conf $ getBalance id Nothing
-      cashBalance' <- runTest conf $ getBalance id (Just CASH)
+      cashBalance <- runTest conf $ getBalance Nothing
+      cashBalance' <- runTest conf $ getBalance (Just CASH)
       cashBalance `shouldBe` cashBalance'
       
 
 main :: IO ()
 main = do
   xenditConfig <- fromJust <$> decodeFileStrict' "config.json"
-  hspec $ spec xenditConfig
+  hspec $ spec $ TestEnv (xenditConfig, id)
