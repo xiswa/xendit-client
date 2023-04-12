@@ -1,6 +1,6 @@
-name:                xendit
-version:             0.1.0.0
-github:              "Xiswa/xendit"
+name:                xendit-client
+version:             0.2.0.0
+github:              "xiswa/xendit-client"
 license:             BSD3
 author:              "PT Xiswa Adidaya Nusantara"
 maintainer:          "developer@xiswa.com"
@@ -17,7 +17,7 @@ extra-source-files:
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
-description:         Please see the README on GitHub at <https://github.com/Xiswa/xendit#readme>
+description:         Please see the README on GitHub at <https://github.com/xiswa/xendit-client#readme>
 
 dependencies:
 - base >= 4.7 && < 5
@@ -55,7 +55,7 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - base
-    - xendit
+    - xendit-client
     - hspec
     - hspec-wai
     - hspec-wai-json

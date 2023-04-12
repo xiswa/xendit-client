@@ -4,11 +4,11 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 
-name:           xendit
-version:        0.1.0.0
-description:    Please see the README on GitHub at <https://github.com/Xiswa/xendit#readme>
-homepage:       https://github.com/Xiswa/xendit#readme
-bug-reports:    https://github.com/Xiswa/xendit/issues
+name:           xendit-client
+version:        0.2.0.0
+description:    Please see the README on GitHub at <https://github.com/xiswa/xendit-client#readme>
+homepage:       https://github.com/xiswa/xendit-client#readme
+bug-reports:    https://github.com/xiswa/xendit-client/issues
 author:         PT Xiswa Adidaya Nusantara
 maintainer:     developer@xiswa.com
 copyright:      2023 PT Xiswa Adidaya Nusantara
@@ -21,7 +21,7 @@ extra-source-files:
 
 source-repository head
   type: git
-  location: https://github.com/Xiswa/xendit
+  location: https://github.com/xiswa/xendit-client
 
 library
   exposed-modules:
@@ -30,7 +30,7 @@ library
       Xendit.Internal.Utils
       Xendit.Types
   other-modules:
-      Paths_xendit
+      Paths_xendit_client
   hs-source-dirs:
       src
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
@@ -51,7 +51,7 @@ test-suite xendit-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      Paths_xendit
+      Paths_xendit_client
   hs-source-dirs:
       test
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
@@ -69,5 +69,5 @@ test-suite xendit-test
     , servant-client-core
     , text
     , time
-    , xendit
+    , xendit-client
   default-language: Haskell2010
