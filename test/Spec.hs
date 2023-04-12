@@ -3,6 +3,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE InstanceSigs               #-}
+{-# LANGUAGE FlexibleInstances          #-}
 module Main (main) where
 
 import Control.Exception
@@ -13,17 +14,19 @@ import Data.Aeson
 import Servant.Client
 import Test.Hspec
 
+import Xiswa.Utils
+
 import Xendit
 
 newtype TestEnv = TestEnv
   { unTestEnv :: (XenditConfig, ClientError -> ClientError)
   }
 
-instance HasXenditConfig TestEnv where
-  getConfig = fst . unTestEnv
+instance Has XenditConfig TestEnv where
+  obtain = fst . unTestEnv
 
-instance HasErrorConv ClientError TestEnv where
-  getErrorConv = snd . unTestEnv
+instance Has (ClientError -> ClientError) TestEnv where
+  obtain = snd . unTestEnv
 
 newtype Test a = Test
   { unTest :: ReaderT TestEnv IO a

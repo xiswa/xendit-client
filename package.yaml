@@ -30,6 +30,7 @@ dependencies:
 - servant-client-core
 - text
 - time
+- xiswa-utils
 
 ghc-options:
 - -Wall
@@ -46,7 +47,7 @@ library:
   source-dirs: src
 
 tests:
-  xendit-test:
+  xendit-client-test:
     main:                Spec.hs
     source-dirs:         test
     ghc-options:

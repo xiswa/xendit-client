@@ -26,9 +26,10 @@ import Data.Aeson
 import Data.Aeson.TH
 import Data.Text (Text, pack)
 import Data.Time (UTCTime)
-
-import Xendit.Internal.Utils
 import Servant.API (ToHttpApiData(..))
+
+import Xiswa.Utils
+
 
 data AccountType = CASH | HOLDING | TAX
   deriving (Eq, Show)
@@ -36,24 +37,32 @@ data AccountType = CASH | HOLDING | TAX
 instance ToHttpApiData AccountType where
   toQueryParam = pack . show
 
-$(deriveJSON xenditOptions ''AccountType)
+$(deriveJSON defaultOptions {
+    omitNothingFields = True
+  } ''AccountType)
 
 newtype Balance = Balance 
   { balance :: Int 
   }
   deriving (Eq, Show)
 
-$(deriveJSON xenditOptions ''Balance)
+$(deriveJSON defaultOptions {
+    omitNothingFields = True
+  } ''Balance)
 
 data Currency = IDR | PHP
   deriving (Eq, Show)
 
-$(deriveJSON xenditOptions ''Currency)
+$(deriveJSON defaultOptions {
+    omitNothingFields = True
+  } ''Currency)
 
 data Status = PENDING | PAID | EXPIRED | SETTLED
   deriving (Eq, Show)
 
-$(deriveJSON xenditOptions ''Status)
+$(deriveJSON defaultOptions {
+    omitNothingFields = True
+  } ''Status)
 
 data BankCode = 
     BCA 
@@ -69,7 +78,7 @@ data BankCode =
   | SAHABAT_SAMPOERNA
   deriving (Eq, Show)
 
-$(deriveJSON xenditOptions ''BankCode)
+$(deriveJSON defaultOptions { omitNothingFields = True } ''BankCode)
 
 -- | A simplified Xendit bank object
 -- Most fields are encoded as Text for simplicity.
@@ -109,35 +118,48 @@ data EWallet =
   | PAYMAYA
   deriving (Eq, Show)
 
-$(deriveJSON xenditOptions ''EWallet)
+$(deriveJSON defaultOptions {
+    omitNothingFields = True
+  } ''EWallet)
 
 newtype RetailOutlet = RetailOutlet
   { retailOutletName    :: Text
   }
   deriving (Eq, Show)
 
-$(deriveJSON xenditOptions {fieldLabelModifier = camelToSnake} ''RetailOutlet)
+$(deriveJSON defaultOptions {
+    omitNothingFields = True
+  , fieldLabelModifier = camelToSnake
+  } ''RetailOutlet)
 
 newtype QRCode = QRCode
   { qrCodeType          :: Text
   }
   deriving (Eq, Show)
 
-$(deriveJSON xenditOptions {fieldLabelModifier = camelToSnake} ''QRCode)
+$(deriveJSON defaultOptions {
+    omitNothingFields = True
+  , fieldLabelModifier = camelToSnake
+  } ''QRCode)
 
 newtype DirectDebit = DirectDebit
   { directDebitType     :: Text
   }
   deriving (Eq, Show)
 
-$(deriveJSON xenditOptions {fieldLabelModifier = camelToSnake} ''DirectDebit)
+$(deriveJSON defaultOptions {
+    omitNothingFields = True
+  , fieldLabelModifier = camelToSnake} ''DirectDebit)
 
 newtype PayLater = PayLater
   { paylaterType        :: Text
   }
   deriving (Eq, Show)
 
-$(deriveJSON xenditOptions {fieldLabelModifier = camelToSnake} ''PayLater)
+$(deriveJSON defaultOptions {
+    omitNothingFields = True
+  , fieldLabelModifier = camelToSnake
+  } ''PayLater)
 
 data Customer = Customer
   { customerGivenNames    :: Maybe Text
@@ -148,7 +170,10 @@ data Customer = Customer
   }
   deriving (Eq, Show)
 
-$(deriveJSON xenditOptions {fieldLabelModifier = camelWithPrefToSnake "customer"} ''Customer)
+$(deriveJSON defaultOptions {
+    omitNothingFields = True
+  , fieldLabelModifier = camelToSnakeWithPref "customer"
+  } ''Customer)
 
 data Fee = Fee
   { typ     :: Text
@@ -180,7 +205,10 @@ data InvoiceRequest = InvoiceRequest
   }
   deriving (Eq, Show)
 
-$(deriveJSON xenditOptions {fieldLabelModifier = camelWithPrefToSnake "invoiceReq"} ''InvoiceRequest)
+$(deriveJSON defaultOptions {
+    omitNothingFields = True
+  , fieldLabelModifier = camelToSnakeWithPref "invoiceReq"
+  } ''InvoiceRequest)
 
 -- | A simplified Xendit invoice creation response object
 -- https://developers.xendit.co/api-reference/?python#create-invoice
@@ -209,7 +237,10 @@ data InvoiceResponse = InvoiceResponse
   }
   deriving (Eq, Show)
 
-$(deriveJSON xenditOptions {fieldLabelModifier = camelWithPrefToSnake "invoiceResp"} ''InvoiceResponse)
+$(deriveJSON defaultOptions {
+    omitNothingFields = True
+  , fieldLabelModifier = camelToSnakeWithPref "invoiceResp"
+  } ''InvoiceResponse)
 
 -- | Object containing payment details
 -- Currently supporting QRIS only
@@ -219,7 +250,10 @@ data PaymentDetail = PaymentDetail
   }
   deriving (Eq, Show)
 
-$(deriveJSON xenditOptions {fieldLabelModifier = camelWithPrefToSnake "pd"} ''PaymentDetail)
+$(deriveJSON defaultOptions {
+    omitNothingFields = True
+  , fieldLabelModifier = camelToSnakeWithPref "pd"
+  } ''PaymentDetail)
 
 data Item = Item
   { itemName      :: !Text
@@ -230,7 +264,10 @@ data Item = Item
   }
   deriving (Eq, Show)
 
-$(deriveJSON xenditOptions {fieldLabelModifier = camelWithPrefToSnake "item"} ''Item)
+$(deriveJSON defaultOptions {
+    omitNothingFields = True 
+  , fieldLabelModifier = camelToSnakeWithPref "item"
+  } ''Item)
 
 -- A Xendit invoice callback payload object
 -- https://developers.xendit.co/api-reference/#invoice-callback
@@ -268,4 +305,7 @@ data InvoicePayload = InvoicePayload
   }
   deriving (Eq, Show)
 
-$(deriveJSON xenditOptions {fieldLabelModifier = camelWithPrefToSnake "invoicePayload"} ''InvoicePayload)
+$(deriveJSON defaultOptions {
+    omitNothingFields = True
+  , fieldLabelModifier = camelToSnakeWithPref "invoicePayload"
+  } ''InvoicePayload)

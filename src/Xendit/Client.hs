@@ -11,9 +11,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 module Xendit.Client (
   -- Constraints
-    HasXenditConfig(..)
-  , HasErrorConv(..)
-  , XenditConfig(..)
+    XenditConfig(..)
   , WithXendit
 
   -- Client functions
@@ -36,14 +34,9 @@ import Servant.Client
 import Servant.Client.Generic
 import GHC.Generics
 
+import Xiswa.Utils
+
 import Xendit.Types
-import Xendit.Internal.Utils
-
-class HasXenditConfig env where
-  getConfig :: env -> XenditConfig
-
-class HasErrorConv err env where
-  getErrorConv :: env -> ClientError -> err
 
 data XenditConfig = XenditConfig
   { xenditApiKey        :: !Text
@@ -52,12 +45,14 @@ data XenditConfig = XenditConfig
   }
   deriving (Eq, Show)
 
-$(deriveJSON xenditOptions {fieldLabelModifier = camelWithPrefToSnake "xendit"} ''XenditConfig)
+$(deriveJSON defaultOptions {
+    fieldLabelModifier = camelToSnakeWithPref "xendit"
+  } ''XenditConfig)
 
 type WithXendit env err m = 
   ( MonadReader env m
-  , HasXenditConfig env
-  , HasErrorConv err env
+  , Has XenditConfig env
+  , Has (ClientError -> err) env
   , MonadIO m
   , MonadError err m
   )
@@ -98,8 +93,8 @@ xenditRoutes
   :: forall env err m. (WithXendit env err m)
   => Xendit (AsClientT m)
 xenditRoutes = genericClientHoist $ \c -> do
-  XenditConfig{..} <- asks getConfig
-  errorConv <- asks getErrorConv
+  XenditConfig{..} <- grab
+  errorConv <- grab
   manager <- liftIO $ newManager tlsManagerSettings
   let env = mkClientEnv manager xenditApiUrl
   resp <- liftIO (runClientM c env)
@@ -109,7 +104,7 @@ getAuth
   :: forall env err m. (WithXendit env err m)
   => m BasicAuthData  
 getAuth = do
-  XenditConfig{..} <- asks getConfig
+  XenditConfig{..} <- grab
   return $ BasicAuthData (encodeUtf8 xenditApiKey) ""
 
 getBalance 

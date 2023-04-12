@@ -3,7 +3,18 @@
 # For more information, please see the documentation at:
 #   https://docs.haskellstack.org/en/stable/lock_files
 
-packages: []
+packages:
+- completed:
+    commit: d643f8012f889f3e3161144b88752914654d3f83
+    git: https://github.com/xiswa/xiswa-utils
+    name: xiswa-utils
+    pantry-tree:
+      sha256: b0d0a17b44aaec483e7ee6710a0ac03b1e87c35de7c17fe045f4196ffdf8b308
+      size: 649
+    version: 0.1.0.0
+  original:
+    commit: d643f8012f889f3e3161144b88752914654d3f83
+    git: https://github.com/xiswa/xiswa-utils
 snapshots:
 - completed:
     sha256: af5d667f6096e535b9c725a72cffe0f6c060e0568d9f9eeda04caee70d0d9d2d
