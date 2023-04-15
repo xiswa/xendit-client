@@ -10,9 +10,7 @@
 {-# LANGUAGE TemplateHaskell       #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 module Xendit.Client (
-  -- Constraints
     XenditConfig(..)
-  , WithXendit
 
   -- Client functions
   , getBalance
@@ -49,14 +47,6 @@ $(deriveJSON defaultOptions {
     fieldLabelModifier = camelToSnakeWithPref "xendit"
   } ''XenditConfig)
 
-type WithXendit env err m = 
-  ( MonadReader env m
-  , Has XenditConfig env
-  , Has (ClientError -> err) env
-  , MonadIO m
-  , MonadError err m
-  )
-
 -- | Xendit API endpoints
 data Xendit route = Xendit
   { 
@@ -90,7 +80,13 @@ data Xendit route = Xendit
 
 {- | Automatically derive client functions -}
 xenditRoutes 
-  :: forall env err m. (WithXendit env err m)
+  :: forall env err m. 
+     ( MonadReader env m
+     , Has XenditConfig env
+     , Has (ClientError -> err) env
+     , MonadIO m
+     , MonadError err m
+     )
   => Xendit (AsClientT m)
 xenditRoutes = genericClientHoist $ \c -> do
   XenditConfig{..} <- grab
@@ -101,14 +97,23 @@ xenditRoutes = genericClientHoist $ \c -> do
   liftEither $ first errorConv resp
 
 getAuth
-  :: forall env err m. (WithXendit env err m)
+  :: forall env m.
+     ( MonadReader env m
+     , Has XenditConfig env
+     )
   => m BasicAuthData  
 getAuth = do
   XenditConfig{..} <- grab
   return $ BasicAuthData (encodeUtf8 xenditApiKey) ""
 
 getBalance 
-  :: forall env err m. (WithXendit env err m)
+  :: forall env err m.
+     ( MonadReader env m
+     , Has XenditConfig env
+     , Has (ClientError -> err) env
+     , MonadIO m
+     , MonadError err m
+     )
   => Maybe AccountType 
   -> m Balance
 getBalance maybeAccountType = do
@@ -116,7 +121,13 @@ getBalance maybeAccountType = do
   _getBalance xenditRoutes xenditAuth maybeAccountType
   
 requestInvoice 
-  :: forall env err m. (WithXendit env err m)
+  :: forall env err m.
+     ( MonadReader env m
+     , Has XenditConfig env
+     , Has (ClientError -> err) env
+     , MonadIO m
+     , MonadError err m
+     )
   => InvoiceRequest 
   -> m InvoiceResponse
 requestInvoice invoiceRequest = do
@@ -124,14 +135,26 @@ requestInvoice invoiceRequest = do
   _requestInvoice xenditRoutes xenditAuth invoiceRequest
 
 getAllInvoices 
-  :: forall env err m. (WithXendit env err m)
+  :: forall env err m.
+     ( MonadReader env m
+     , Has XenditConfig env
+     , Has (ClientError -> err) env
+     , MonadIO m
+     , MonadError err m
+     )
   => m [InvoiceResponse]
 getAllInvoices = do
   xenditAuth <- getAuth
   _getAllInvoices xenditRoutes xenditAuth
 
 getInvoice
-  :: forall env err m. (WithXendit env err m)
+  :: forall env err m.
+     ( MonadReader env m
+     , Has XenditConfig env
+     , Has (ClientError -> err) env
+     , MonadIO m
+     , MonadError err m
+     )
   => Text 
   -> m InvoiceResponse
 getInvoice invoiceId = do 
