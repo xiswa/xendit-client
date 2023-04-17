@@ -5,15 +5,15 @@
 
 packages:
 - completed:
-    commit: d643f8012f889f3e3161144b88752914654d3f83
+    commit: 9ff5940fa2a1ad683e027a22247d6907b60aa5ab
     git: https://github.com/xiswa/xiswa-utils
     name: xiswa-utils
     pantry-tree:
-      sha256: b0d0a17b44aaec483e7ee6710a0ac03b1e87c35de7c17fe045f4196ffdf8b308
-      size: 649
+      sha256: 2d685d7182abb72eab95c39a0642b0530a7a5f4ab76dec77df46e5e9ce6c7a37
+      size: 520
     version: 0.1.0.0
   original:
-    commit: d643f8012f889f3e3161144b88752914654d3f83
+    commit: 9ff5940fa2a1ad683e027a22247d6907b60aa5ab
     git: https://github.com/xiswa/xiswa-utils
 snapshots:
 - completed:
