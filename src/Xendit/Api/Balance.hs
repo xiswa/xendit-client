@@ -40,14 +40,13 @@ balanceRoutes
   :: forall env err m. 
      ( MonadReader env m
      , Has XenditConfig env
-     , Has (ClientError -> err) env
      , MonadIO m
      , MonadError err m
      )
-  => BalanceR (AsClientT m)
-balanceRoutes = genericClientHoist $ \c -> do
+  => (ClientError -> err)
+  -> BalanceR (AsClientT m)
+balanceRoutes errorConv = genericClientHoist $ \c -> do
   XenditConfig{..} <- grab
-  errorConv <- grab
   manager <- liftIO $ newManager tlsManagerSettings
   let env = mkClientEnv manager xenditApiUrl
   resp <- liftIO (runClientM c env)
@@ -57,15 +56,15 @@ getBalance
   :: forall env err m.
      ( MonadReader env m
      , Has XenditConfig env
-     , Has (ClientError -> err) env
      , MonadIO m
      , MonadError err m
      )
-  => Maybe AccountType 
+  => (ClientError -> err)
+  -> Maybe AccountType 
   -> m Balance
-getBalance maybeAccountType = do
+getBalance errorConv maybeAccountType = do
   xenditAuth <- getAuth
-  _getBalance balanceRoutes xenditAuth maybeAccountType
+  _getBalance (balanceRoutes errorConv) xenditAuth maybeAccountType
 
 
 data AccountType = CASH | HOLDING | TAX

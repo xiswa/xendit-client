@@ -19,14 +19,11 @@ import Xiswa.Utils
 import Xendit
 
 newtype TestEnv = TestEnv
-  { unTestEnv :: (XenditConfig, ClientError -> ClientError)
+  { unTestEnv :: XenditConfig
   }
 
 instance Has XenditConfig TestEnv where
-  obtain = fst . unTestEnv
-
-instance Has (ClientError -> ClientError) TestEnv where
-  obtain = snd . unTestEnv
+  obtain = unTestEnv
 
 newtype Test a = Test
   { unTest :: ReaderT TestEnv IO a
@@ -61,26 +58,26 @@ spec conf = do
 
   describe "requestInvoice" $ do
     it "responds with correct fields" $ do
-      invoiceResp <- runTest conf $ requestInvoice invoiceRequest
+      invoiceResp <- runTest conf $ requestInvoice id invoiceRequest
       invoiceRespExternalId invoiceResp `shouldBe` invoiceReqExternalId invoiceRequest
       invoiceRespDescription invoiceResp `shouldBe` invoiceReqDescription invoiceRequest
       invoiceRespAmount invoiceResp `shouldBe` invoiceReqAmount invoiceRequest
 
   describe "getInvoice" $ do
     it "correctly gets invoice by id" $ do
-      invoiceResp1 <- runTest conf $ requestInvoice invoiceRequest
-      invoiceResp2 <- runTest conf $ getInvoice (invoiceRespId invoiceResp1)
+      invoiceResp1 <- runTest conf $ requestInvoice id invoiceRequest
+      invoiceResp2 <- runTest conf $ getInvoice id (invoiceRespId invoiceResp1)
       invoiceResp2 `shouldBe` invoiceResp1
 
   describe "getBalance" $ do
     it "correctly gets current balance" $ do
       -- Defaults to CASH
-      cashBalance <- runTest conf $ getBalance Nothing
-      cashBalance' <- runTest conf $ getBalance (Just CASH)
+      cashBalance <- runTest conf $ getBalance id Nothing
+      cashBalance' <- runTest conf $ getBalance id (Just CASH)
       cashBalance `shouldBe` cashBalance'
       
 
 main :: IO ()
 main = do
   xenditConfig <- fromJust <$> decodeFileStrict' "config.json"
-  hspec $ spec $ TestEnv (xenditConfig, id)
+  hspec $ spec (TestEnv xenditConfig)

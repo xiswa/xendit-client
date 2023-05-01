@@ -59,14 +59,13 @@ invoiceRoutes
   :: forall env err m. 
      ( MonadReader env m
      , Has XenditConfig env
-     , Has (ClientError -> err) env
      , MonadIO m
      , MonadError err m
      )
-  => InvoiceR (AsClientT m)
-invoiceRoutes = genericClientHoist $ \c -> do
+  => (ClientError -> err)
+  -> InvoiceR (AsClientT m)
+invoiceRoutes errorConv = genericClientHoist $ \c -> do
   XenditConfig{..} <- grab
-  errorConv <- grab
   manager <- liftIO $ newManager tlsManagerSettings
   let env = mkClientEnv manager xenditApiUrl
   resp <- liftIO (runClientM c env)
@@ -76,42 +75,42 @@ requestInvoice
   :: forall env err m.
      ( MonadReader env m
      , Has XenditConfig env
-     , Has (ClientError -> err) env
      , MonadIO m
      , MonadError err m
      )
-  => InvoiceRequest 
+  => (ClientError -> err)
+  -> InvoiceRequest 
   -> m InvoiceResponse
-requestInvoice invoiceRequest = do
+requestInvoice errorConv invoiceRequest = do
   xenditAuth <- getAuth
-  _requestInvoice invoiceRoutes xenditAuth invoiceRequest
+  _requestInvoice (invoiceRoutes errorConv) xenditAuth invoiceRequest
 
 getAllInvoices 
   :: forall env err m.
      ( MonadReader env m
      , Has XenditConfig env
-     , Has (ClientError -> err) env
      , MonadIO m
      , MonadError err m
      )
-  => m [InvoiceResponse]
-getAllInvoices = do
+  => (ClientError -> err)
+  -> m [InvoiceResponse]
+getAllInvoices errorConv = do
   xenditAuth <- getAuth
-  _getAllInvoices invoiceRoutes xenditAuth
+  _getAllInvoices (invoiceRoutes errorConv) xenditAuth
 
 getInvoice
   :: forall env err m.
      ( MonadReader env m
      , Has XenditConfig env
-     , Has (ClientError -> err) env
      , MonadIO m
      , MonadError err m
      )
-  => Text 
+  => (ClientError -> err)
+  -> Text 
   -> m InvoiceResponse
-getInvoice invoiceId = do 
+getInvoice errorConv invoiceId = do 
   xenditAuth <- getAuth
-  _getInvoice invoiceRoutes xenditAuth invoiceId
+  _getInvoice (invoiceRoutes errorConv) xenditAuth invoiceId
 
 
 -- | A simplified Xendit invoice creation object
