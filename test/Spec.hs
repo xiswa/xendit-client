@@ -46,13 +46,32 @@ runTest env = flip runReaderT env . unTest
 
 spec :: TestEnv -> Spec
 spec conf = do
-  let invoiceRequest = InvoiceRequest
+  let address = Address
+        { addressCountry     = "ID"
+        , addressCity        = Just "Bantul"
+        , addressCategory    = Just HOME
+        , addressPostalCode  = Nothing
+        , addressIsPrimary   = Nothing
+        , addressState       = Nothing
+        , addressStreetLine1 = Nothing
+        , addressStreetLine2 = Nothing
+        }
+
+      customer = Customer
+        { customerGivenNames   = Just "Wahyu"
+        , customerEmail        = Just "archbung@gmail.com"
+        , customerAddresses    = Just [address]
+        , customerSurname      = Nothing
+        , customerMobileNumber = Nothing
+        }
+
+      invoiceRequest = InvoiceRequest
         { invoiceReqExternalId          = "some-external-id"
         , invoiceReqAmount              = 3000
         , invoiceReqDescription         = "some-description"
         , invoiceReqSuccessRedirectUrl  = Nothing
         , invoiceReqFailureRedirectUrl  = Nothing
-        , invoiceReqCustomer            = Nothing
+        , invoiceReqCustomer            = Just customer
         , invoiceReqFees                = Nothing
         }
 

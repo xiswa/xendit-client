@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           xendit-client
-version:        0.2.2.0
+version:        0.2.5.0
 description:    Please see the README on GitHub at <https://github.com/xiswa/xendit-client#readme>
 homepage:       https://github.com/xiswa/xendit-client#readme
 bug-reports:    https://github.com/xiswa/xendit-client/issues

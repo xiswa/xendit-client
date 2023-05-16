@@ -5,6 +5,7 @@
 {-# LANGUAGE ConstraintKinds  #-}
 {-# LANGUAGE RecordWildCards  #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TemplateHaskell  #-}
 module Xendit.Api.Balance (
     AccountType(..)
   , Balance(..)
@@ -13,7 +14,7 @@ module Xendit.Api.Balance (
 
 import Control.Monad.Reader
 import Control.Monad.Except
-import Data.Aeson
+import Data.Aeson.TH
 import Data.Text
 import Data.Bifunctor
 import Network.HTTP.Client
@@ -34,6 +35,25 @@ newtype BalanceR route = BalanceR
       :> Get '[JSON] Balance
   }
   deriving (Generic)
+
+data AccountType = CASH | HOLDING | TAX
+  deriving (Eq, Show, Generic)
+
+newtype Balance = Balance 
+  { balance :: Int 
+  }
+  deriving (Eq, Show, Generic)
+
+instance ToHttpApiData AccountType where
+  toQueryParam = pack . show
+
+$(deriveJSON defaultOptions { 
+    omitNothingFields  = True  
+  } ''AccountType)
+
+$(deriveJSON defaultOptions { 
+    omitNothingFields  = True  
+  } ''Balance)
 
 {- | Automatically derive client functions -}
 balanceRoutes 
@@ -65,28 +85,3 @@ getBalance
 getBalance errorConv maybeAccountType = do
   xenditAuth <- getAuth
   _getBalance (balanceRoutes errorConv) xenditAuth maybeAccountType
-
-
-data AccountType = CASH | HOLDING | TAX
-  deriving (Eq, Show, Generic)
-
-instance ToHttpApiData AccountType where
-  toQueryParam = pack . show
-
-instance ToJSON AccountType where
-  toJSON = genericToJSON xenditOptions
-
-instance FromJSON AccountType where
-  parseJSON = genericParseJSON xenditOptions
-
-
-newtype Balance = Balance 
-  { balance :: Int 
-  }
-  deriving (Eq, Show, Generic)
-
-instance ToJSON Balance where
-  toJSON = genericToJSON xenditOptions
-
-instance FromJSON Balance where
-  parseJSON = genericParseJSON xenditOptions

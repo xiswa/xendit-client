@@ -5,6 +5,7 @@
 {-# LANGUAGE ConstraintKinds       #-}
 {-# LANGUAGE RecordWildCards       #-}
 {-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE TemplateHaskell  #-}
 module Xendit.Api.Invoice (
     InvoiceRequest(..)
   , InvoiceResponse(..)
@@ -16,7 +17,7 @@ module Xendit.Api.Invoice (
 
 import Control.Monad.Reader
 import Control.Monad.Except
-import Data.Aeson
+import Data.Aeson.TH
 import Data.Time
 import Data.Bifunctor
 import Data.Text
@@ -53,6 +54,97 @@ data InvoiceR route = InvoiceR
       :> Get '[JSON] InvoiceResponse
   }
   deriving (Generic)
+
+-- | A simplified Xendit invoice creation object
+-- https://developers.xendit.co/api-reference/?python#create-invoice
+data InvoiceRequest = InvoiceRequest
+  { invoiceReqExternalId          :: !Text
+  , invoiceReqAmount              :: !Int
+  , invoiceReqDescription         :: !Text
+  , invoiceReqSuccessRedirectUrl  :: Maybe Text
+  , invoiceReqFailureRedirectUrl  :: Maybe Text
+  , invoiceReqCustomer            :: Maybe Customer 
+  , invoiceReqFees                :: Maybe [Fee]
+  }
+  deriving (Eq, Show, Generic)
+
+-- | A simplified Xendit invoice creation response object
+-- https://developers.xendit.co/api-reference/?python#create-invoice
+data InvoiceResponse = InvoiceResponse
+  { invoiceRespId                         :: !Text 
+  , invoiceRespExternalId                 :: !Text
+  , invoiceRespUserId                     :: !Text
+  , invoiceRespStatus                     :: !Status
+  , invoiceRespMerchantName               :: !Text
+  , invoiceRespMerchantProfilePictureUrl  :: !Text
+  , invoiceRespAmount                     :: !Int
+  , invoiceRespDescription                :: !Text
+  , invoiceRespExpiryDate                 :: !UTCTime
+  , invoiceRespInvoiceUrl                 :: !Text
+  , invoiceRespAvailableBanks             :: [Bank]
+  , invoiceRespAvailableRetailOutlets     :: [RetailOutlet]
+  , invoiceRespAvailableQrCodes           :: [QRCode]
+  , invoiceRespAvailableDirectDebits      :: [DirectDebit]
+  , invoiceRespAvailablePaylaters         :: [PayLater]
+  , invoiceRespShouldExcludeCreditCard    :: !Bool
+  , invoiceRespShouldSendEmail            :: !Bool
+  , invoiceRespCreated                    :: !UTCTime
+  , invoiceRespUpdated                    :: !UTCTime
+  , invoiceRespCurrency                   :: !Currency
+  , invoiceRespCustomer                   :: Maybe Customer
+  }
+  deriving (Eq, Show, Generic)
+
+-- A Xendit invoice callback payload object
+-- https://developers.xendit.co/api-reference/#invoice-callback
+data InvoicePayload = InvoicePayload
+  { invoicePayloadId                              :: !Text
+  , invoicePayloadExternalId                      :: !Text
+  , invoicePayloadUserId                          :: !Text
+  , invoicePayloadIsHigh                          :: !Bool
+  , invoicePayloadStatus                          :: !Status
+  , invoicePayloadMerchantName                    :: !Text
+  , invoicePayloadAmount                          :: !Int
+  , invoicePayloadPayerEmail                      :: Maybe Text
+  , invoicePayloadDescription                     :: !Text
+  , invoicePayloadPaidAmount                      :: Maybe Int
+  , invoicePayloadAdjustedReceivedAmount          :: Maybe Int
+  , invoicePayloadUpdated                         :: !UTCTime
+  , invoicePayloadCreated                         :: !UTCTime
+  , invoicePayloadCurrency                        :: !Text
+  , invoicePayloadPaidAt                          :: Maybe UTCTime
+  , invoicePayloadPaymentMethod                   :: Maybe Text
+  , invoicePayloadPaymentChannel                  :: Maybe Text
+  , invoicePayloadpaymentDestination              :: Maybe Text
+  , invoicePayloadPaymentDetails                  :: Maybe PaymentDetail
+  , invoicePayloadPaymentId                       :: Maybe Text
+  , invoicePayloadSuccessRedirectUrl              :: Maybe Text
+  , invoicePayloadFailureRedirectUrl              :: Maybe Text
+  , invoicePayloadCreditCardChargeId              :: Maybe Text
+  , invoicePayloadItems                           :: Maybe [Item]
+  , invoicePayloadFees                            :: Maybe [Fee]
+  , invoicePayloadShouldAuthenticateCreditCard    :: Maybe Bool
+  , invoicePayloadBankCode                        :: Maybe BankCode
+  , invoicePayloadEwalletType                     :: Maybe EWallet
+  , invoicePayloadOnDemandLink                    :: Maybe Text
+  , invoicePayloadRecurringPaymentId              :: Maybe Text
+  }
+  deriving (Eq, Show, Generic)
+
+$(deriveJSON defaultOptions { 
+    omitNothingFields  = True  
+  , fieldLabelModifier = camelToSnakeCase "invoiceReq"
+  } ''InvoiceRequest)
+
+$(deriveJSON defaultOptions { 
+    omitNothingFields  = True  
+  , fieldLabelModifier = camelToSnakeCase "invoiceResp"
+  } ''InvoiceResponse)
+
+$(deriveJSON defaultOptions { 
+    omitNothingFields  = True  
+  , fieldLabelModifier = camelToSnakeCase "invoicePayload"
+  } ''InvoicePayload)
 
 {- | Automatically derive client functions -}
 invoiceRoutes 
@@ -111,118 +203,3 @@ getInvoice
 getInvoice errorConv invoiceId = do 
   xenditAuth <- getAuth
   _getInvoice (invoiceRoutes errorConv) xenditAuth invoiceId
-
-
--- | A simplified Xendit invoice creation object
--- https://developers.xendit.co/api-reference/?python#create-invoice
-data InvoiceRequest = InvoiceRequest
-  { invoiceReqExternalId          :: !Text
-  , invoiceReqAmount              :: !Int
-  , invoiceReqDescription         :: !Text
-  , invoiceReqSuccessRedirectUrl  :: Maybe Text
-  , invoiceReqFailureRedirectUrl  :: Maybe Text
-  , invoiceReqCustomer            :: Maybe Customer 
-  , invoiceReqFees                :: Maybe [Fee]
-  }
-  deriving (Eq, Show, Generic)
-
-instance ToJSON InvoiceRequest where
-  toJSON = genericToJSON $
-    xenditOptions
-      { fieldLabelModifier = camelToSnakeCase "invoiceReq"
-      }
-
-instance FromJSON InvoiceRequest where
-  parseJSON = genericParseJSON $
-    xenditOptions
-      { fieldLabelModifier = camelToSnakeCase "invoiceReq"
-      }
-
-
--- | A simplified Xendit invoice creation response object
--- https://developers.xendit.co/api-reference/?python#create-invoice
-data InvoiceResponse = InvoiceResponse
-  { invoiceRespId                         :: !Text 
-  , invoiceRespExternalId                 :: !Text
-  , invoiceRespUserId                     :: !Text
-  , invoiceRespStatus                     :: !Status
-  , invoiceRespMerchantName               :: !Text
-  , invoiceRespMerchantProfilePictureUrl  :: !Text
-  , invoiceRespAmount                     :: !Int
-  , invoiceRespDescription                :: !Text
-  , invoiceRespExpiryDate                 :: !UTCTime
-  , invoiceRespInvoiceUrl                 :: !Text
-  , invoiceRespAvailableBanks             :: [Bank]
-  , invoiceRespAvailableRetailOutlets     :: [RetailOutlet]
-  , invoiceRespAvailableQrCodes           :: [QRCode]
-  , invoiceRespAvailableDirectDebits      :: [DirectDebit]
-  , invoiceRespAvailablePaylaters         :: [PayLater]
-  , invoiceRespShouldExcludeCreditCard    :: !Bool
-  , invoiceRespShouldSendEmail            :: !Bool
-  , invoiceRespCreated                    :: !UTCTime
-  , invoiceRespUpdated                    :: !UTCTime
-  , invoiceRespCurrency                   :: !Currency
-  , invoiceRespCustomer                   :: Maybe Customer
-  }
-  deriving (Eq, Show, Generic)
-
-instance ToJSON InvoiceResponse where
-  toJSON = genericToJSON $
-    xenditOptions
-      { fieldLabelModifier = camelToSnakeCase "invoiceResp"
-      }
-
-instance FromJSON InvoiceResponse where
-  parseJSON = genericParseJSON $
-    xenditOptions
-      { fieldLabelModifier = camelToSnakeCase "invoiceResp"
-      }
-
-
--- A Xendit invoice callback payload object
--- https://developers.xendit.co/api-reference/#invoice-callback
-data InvoicePayload = InvoicePayload
-  { invoicePayloadId                              :: !Text
-  , invoicePayloadExternalId                      :: !Text
-  , invoicePayloadUserId                          :: !Text
-  , invoicePayloadIsHigh                          :: !Bool
-  , invoicePayloadStatus                          :: !Status
-  , invoicePayloadMerchantName                    :: !Text
-  , invoicePayloadAmount                          :: !Int
-  , invoicePayloadPayerEmail                      :: Maybe Text
-  , invoicePayloadDescription                     :: !Text
-  , invoicePayloadPaidAmount                      :: Maybe Int
-  , invoicePayloadAdjustedReceivedAmount          :: Maybe Int
-  , invoicePayloadUpdated                         :: !UTCTime
-  , invoicePayloadCreated                         :: !UTCTime
-  , invoicePayloadCurrency                        :: !Text
-  , invoicePayloadPaidAt                          :: Maybe UTCTime
-  , invoicePayloadPaymentMethod                   :: Maybe Text
-  , invoicePayloadPaymentChannel                  :: Maybe Text
-  , invoicePayloadpaymentDestination              :: Maybe Text
-  , invoicePayloadPaymentDetails                  :: Maybe PaymentDetail
-  , invoicePayloadPaymentId                       :: Maybe Text
-  , invoicePayloadSuccessRedirectUrl              :: Maybe Text
-  , invoicePayloadFailureRedirectUrl              :: Maybe Text
-  , invoicePayloadCreditCardChargeId              :: Maybe Text
-  , invoicePayloadItems                           :: Maybe [Item]
-  , invoicePayloadFees                            :: Maybe [Fee]
-  , invoicePayloadShouldAuthenticateCreditCard    :: Maybe Bool
-  , invoicePayloadBankCode                        :: Maybe BankCode
-  , invoicePayloadEwalletType                     :: Maybe EWallet
-  , invoicePayloadOnDemandLink                    :: Maybe Text
-  , invoicePayloadRecurringPaymentId              :: Maybe Text
-  }
-  deriving (Eq, Show, Generic)
-
-instance ToJSON InvoicePayload where
-  toJSON = genericToJSON $
-    xenditOptions
-      { fieldLabelModifier = camelToSnakeCase "invoicePayload"
-      }
-
-instance FromJSON InvoicePayload where
-  parseJSON = genericParseJSON $
-    xenditOptions
-      { fieldLabelModifier = camelToSnakeCase "invoicePayload"
-      }

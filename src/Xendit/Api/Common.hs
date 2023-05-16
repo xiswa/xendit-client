@@ -3,6 +3,7 @@
 {-# LANGUAGE RecordWildCards   #-}
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell   #-}
 module Xendit.Api.Common (
     Currency(..)
   , Status(..)
@@ -13,27 +14,24 @@ module Xendit.Api.Common (
   , QRCode(..)
   , DirectDebit(..)
   , PayLater(..)
+  , AddressType(..)
+  , Address(..)
   , Customer(..)
   , Fee(..)
   , PaymentDetail(..)
   , Item(..)
   , getAuth
-  , xenditOptions
   ) where
 
 import Control.Monad.Reader
 import Data.Aeson
+import Data.Aeson.TH
 import Data.Text
 import Data.Text.Encoding
 import Servant.API
 import GHC.Generics
 import Xiswa.Utils
 import Xendit.Config
-
-xenditOptions :: Options
-xenditOptions = defaultOptions
-  { omitNothingFields = True
-  }
 
 getAuth
   :: forall env m.
@@ -45,26 +43,11 @@ getAuth = do
   XenditConfig{..} <- grab
   return $ BasicAuthData (encodeUtf8 xenditApiKey) ""
 
-
 data Currency = IDR | PHP
   deriving (Eq, Show, Generic)
 
-instance ToJSON Currency where
-  toJSON = genericToJSON xenditOptions
-
-instance FromJSON Currency where
-  parseJSON = genericParseJSON xenditOptions
-
-
 data Status = PENDING | PAID | EXPIRED | SETTLED
   deriving (Eq, Show, Generic)
-
-instance ToJSON Status where
-  toJSON = genericToJSON xenditOptions
-
-instance FromJSON Status where
-  parseJSON = genericParseJSON xenditOptions
-
 
 data BankCode = 
     BCA 
@@ -80,13 +63,6 @@ data BankCode =
   | SAHABAT_SAMPOERNA
   deriving (Eq, Show, Generic)
 
-instance ToJSON BankCode where
-  toJSON = genericToJSON xenditOptions
-
-instance FromJSON BankCode where
-  parseJSON = genericParseJSON xenditOptions
-
-
 -- | A simplified Xendit bank object
 -- Most fields are encoded as Text for simplicity.
 data Bank = Bank
@@ -98,24 +74,6 @@ data Bank = Bank
   }
   deriving (Eq, Show, Generic)
 
-instance ToJSON Bank where
-  toJSON (Bank code typ amount branch holderName) =
-    object [ "bank_code"            .= code
-           , "collection_type"      .= typ
-           , "transfer_amount"      .= amount
-           , "bank_branch"          .= branch
-           , "account_holder_name"  .= holderName
-           ]
-
-instance FromJSON Bank where
-  parseJSON = withObject "Bank" $ \obj ->
-    Bank <$> obj .: "bank_code"
-         <*> obj .: "collection_type"
-         <*> obj .: "transfer_amount"
-         <*> obj .: "bank_branch"
-         <*> obj .: "account_holder_name"
-
-
 data EWallet =
     DANA
   | OVO
@@ -126,105 +84,43 @@ data EWallet =
   | PAYMAYA
   deriving (Eq, Show, Generic)
 
-instance ToJSON EWallet where
-  toJSON = genericToJSON xenditOptions
-
-instance FromJSON EWallet where
-  parseJSON = genericParseJSON xenditOptions
-
-
 newtype RetailOutlet = RetailOutlet
   { retailOutletName    :: Text
   }
   deriving (Eq, Show, Generic)
-
-instance ToJSON RetailOutlet where
-  toJSON = genericToJSON $
-    xenditOptions
-      { fieldLabelModifier = camelToSnakeCase ""
-      }
-
-instance FromJSON RetailOutlet where
-  parseJSON = genericParseJSON $
-    xenditOptions
-      { fieldLabelModifier = camelToSnakeCase ""
-      }
-
 
 newtype QRCode = QRCode
   { qrCodeType          :: Text
   }
   deriving (Eq, Show, Generic)
 
-instance ToJSON QRCode where
-  toJSON = genericToJSON $
-    xenditOptions
-      { fieldLabelModifier = camelToSnakeCase ""
-      }
-
-instance FromJSON QRCode where
-  parseJSON = genericParseJSON $
-    xenditOptions
-      { fieldLabelModifier = camelToSnakeCase ""
-      }
-
-
 newtype DirectDebit = DirectDebit
   { directDebitType     :: Text
   }
   deriving (Eq, Show, Generic)
-
-instance ToJSON DirectDebit where
-  toJSON = genericToJSON $
-    xenditOptions
-      { fieldLabelModifier = camelToSnakeCase ""
-      }
-
-instance FromJSON DirectDebit where
-  parseJSON = genericParseJSON $
-    xenditOptions
-      { fieldLabelModifier = camelToSnakeCase ""
-      }
-
 
 newtype PayLater = PayLater
   { paylaterType        :: Text
   }
   deriving (Eq, Show, Generic)
 
-instance ToJSON PayLater where
-  toJSON = genericToJSON $
-    xenditOptions
-      { fieldLabelModifier = camelToSnakeCase ""
-      }
-
-instance FromJSON PayLater where
-  parseJSON = genericParseJSON $
-    xenditOptions
-      { fieldLabelModifier = camelToSnakeCase ""
-      }
-
-data Address = Address
-  { addressCity        :: Text
-  , addressCountry     :: Text
-  , addressPostalCode  :: Text
-  , addressState       :: Text
-  , addressStreetLine1 :: Text
-  , addressStreetLine2 :: Text
-  }
+data AddressType =
+    HOME
+  | WORK
+  | PROVINCIAL
   deriving (Eq, Show, Generic)
 
-instance ToJSON Address where
-  toJSON = genericToJSON $
-    xenditOptions
-      { fieldLabelModifier = camelToSnakeCase "address"
-      }
-
-instance FromJSON Address where
-  parseJSON = genericParseJSON $
-    xenditOptions
-      { fieldLabelModifier = camelToSnakeCase "address"
-      }
+data Address = Address
+  { addressCity        :: Maybe Text
+  , addressCountry     :: !Text
+  , addressPostalCode  :: Maybe Text
+  , addressState       :: Maybe Text
+  , addressStreetLine1 :: Maybe Text
+  , addressStreetLine2 :: Maybe Text
+  , addressCategory    :: Maybe AddressType
+  , addressIsPrimary   :: Maybe Bool
+  }
+  deriving (Eq, Show, Generic)
 
 data Customer = Customer
   { customerGivenNames    :: Maybe Text
@@ -234,19 +130,6 @@ data Customer = Customer
   , customerAddresses     :: Maybe [Address]
   }
   deriving (Eq, Show, Generic)
-
-instance ToJSON Customer where
-  toJSON = genericToJSON $
-    xenditOptions
-      { fieldLabelModifier = camelToSnakeCase "customer"
-      }
-
-instance FromJSON Customer where
-  parseJSON = genericParseJSON $
-    xenditOptions
-      { fieldLabelModifier = camelToSnakeCase "customer"
-      }
-
 
 data Fee = Fee
   { typ     :: Text
@@ -274,19 +157,6 @@ data PaymentDetail = PaymentDetail
   }
   deriving (Eq, Show, Generic)
 
-instance ToJSON PaymentDetail where
-  toJSON = genericToJSON $
-    xenditOptions
-      { fieldLabelModifier = camelToSnakeCase "pd"
-      }
-
-instance FromJSON PaymentDetail where
-  parseJSON = genericParseJSON $
-    xenditOptions
-      { fieldLabelModifier = camelToSnakeCase "pd"
-      }
-
-
 data Item = Item
   { itemName      :: !Text
   , itemQuantity  :: !Int
@@ -296,14 +166,79 @@ data Item = Item
   }
   deriving (Eq, Show, Generic)
 
-instance ToJSON Item where
-  toJSON = genericToJSON $
-    xenditOptions
-      { fieldLabelModifier = camelToSnakeCase "item"
-      }
+$(deriveJSON defaultOptions {
+    omitNothingFields = True  
+  } ''Currency)
 
-instance FromJSON Item where
-  parseJSON = genericParseJSON $
-    xenditOptions
-      { fieldLabelModifier = camelToSnakeCase "item"
-      }
+$(deriveJSON defaultOptions {
+    omitNothingFields = True  
+  } ''Status)
+
+$(deriveJSON defaultOptions { 
+    omitNothingFields = True  
+  } ''BankCode)
+
+instance ToJSON Bank where
+  toJSON (Bank code typ amount branch holderName) =
+    object [ "bank_code"            .= code
+           , "collection_type"      .= typ
+           , "transfer_amount"      .= amount
+           , "bank_branch"          .= branch
+           , "account_holder_name"  .= holderName
+           ]
+
+instance FromJSON Bank where
+  parseJSON = withObject "Bank" $ \obj ->
+    Bank <$> obj .: "bank_code"
+         <*> obj .: "collection_type"
+         <*> obj .: "transfer_amount"
+         <*> obj .: "bank_branch"
+         <*> obj .: "account_holder_name"
+
+$(deriveJSON defaultOptions {
+    omitNothingFields = True  
+  } ''EWallet)
+
+$(deriveJSON defaultOptions { 
+    omitNothingFields  = True  
+  , fieldLabelModifier = camelToSnakeCase ""
+  } ''RetailOutlet)
+
+$(deriveJSON defaultOptions { 
+    omitNothingFields  = True  
+  , fieldLabelModifier = camelToSnakeCase ""
+  } ''QRCode)
+
+$(deriveJSON defaultOptions { 
+    omitNothingFields  = True  
+  , fieldLabelModifier = camelToSnakeCase ""
+  } ''DirectDebit)
+
+$(deriveJSON defaultOptions { 
+    omitNothingFields  = True  
+  , fieldLabelModifier = camelToSnakeCase ""
+  } ''PayLater)
+
+$(deriveJSON defaultOptions { 
+    omitNothingFields = True  
+  } ''AddressType)
+
+$(deriveJSON defaultOptions { 
+    omitNothingFields  = True  
+  , fieldLabelModifier = camelToSnakeCase "address"
+  } ''Address)
+
+$(deriveJSON defaultOptions { 
+    omitNothingFields  = True  
+  , fieldLabelModifier = camelToSnakeCase "customer"
+  } ''Customer)
+
+$(deriveJSON defaultOptions { 
+    omitNothingFields  = True  
+  , fieldLabelModifier = camelToSnakeCase "pd"
+  } ''PaymentDetail)
+
+$(deriveJSON defaultOptions { 
+    omitNothingFields  = True  
+  , fieldLabelModifier = camelToSnakeCase "item"
+  } ''Item)
