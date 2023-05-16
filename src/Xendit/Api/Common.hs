@@ -3,7 +3,6 @@
 {-# LANGUAGE RecordWildCards   #-}
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards   #-}
 module Xendit.Api.Common (
     Currency(..)
   , Status(..)
@@ -205,13 +204,34 @@ instance FromJSON PayLater where
       { fieldLabelModifier = camelToSnakeCase ""
       }
 
+data Address = Address
+  { addressCity        :: Text
+  , addressCountry     :: Text
+  , addressPostalCode  :: Text
+  , addressState       :: Text
+  , addressStreetLine1 :: Text
+  , addressStreetLine2 :: Text
+  }
+  deriving (Eq, Show, Generic)
+
+instance ToJSON Address where
+  toJSON = genericToJSON $
+    xenditOptions
+      { fieldLabelModifier = camelToSnakeCase "address"
+      }
+
+instance FromJSON Address where
+  parseJSON = genericParseJSON $
+    xenditOptions
+      { fieldLabelModifier = camelToSnakeCase "address"
+      }
 
 data Customer = Customer
   { customerGivenNames    :: Maybe Text
   , customerSurname       :: Maybe Text
   , customerEmail         :: Maybe Text
   , customerMobileNumber  :: Maybe Text
-  , customerAddresses     :: Maybe Text
+  , customerAddresses     :: Maybe [Address]
   }
   deriving (Eq, Show, Generic)
 
